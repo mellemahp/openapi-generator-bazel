@@ -41,9 +41,14 @@ def _new_generator_command(ctx, declared_dir, rjars):
         output = declared_dir.path,
     )
 
-    gen_cmd += ' -p "{properties}"'.format(
-        properties = _comma_separated_pairs(ctx.attr.system_properties),
-    )
+    for property, value in ctx.attr.system_properties.items():
+        property_string = " --global-property={property}".format(property = property)
+
+        # This is necessary to support optionally empty properties such as `model`
+        if value:
+            property_string += "={value}".format(value = value)
+
+        gen_cmd += property_string
 
     additional_properties = dict(ctx.attr.additional_properties)
 
@@ -161,6 +166,7 @@ _openapi_generator = rule(
         "engine": attr.string(),
         "type_mappings": attr.string_dict(),
         "is_windows": attr.bool(mandatory = True),
+        "model_files_only": attr.bool(),
         "_jdk": attr.label(
             default = Label("@bazel_tools//tools/jdk:current_java_runtime"),
             providers = [java_common.JavaRuntimeInfo],
